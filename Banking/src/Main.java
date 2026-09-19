@@ -1,47 +1,41 @@
-import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
-        Account currentAccount = new Account("Quoc Khanh", new BigDecimal("1000"), new ArrayList<>());
-        BankService bankService = new BankService();
-        BankingController atmController = new BankingController(bankService);
+        Bank bank = new Bank();
+        BankService bankService = new BankService(bank);
+        BankingController controller = new BankingController(bankService, bank);
 
         Scanner scanner = new Scanner(System.in);
         int choice = 0;
 
-        while (choice != 4) {
+        while (choice != 6) {
             System.out.println("\n===========================");
             System.out.println("      ABC BANKING MENU     ");
             System.out.println("===========================");
             System.out.println("1. Check balance");
             System.out.println("2. Deposit");
             System.out.println("3. Withdraw");
-            System.out.println("4. Exit");
+            System.out.println("4. Transfer");
+            System.out.println("5. List all accounts");
+            System.out.println("6. Exit");
             System.out.print("Please choose a function: ");
 
             if (scanner.hasNextInt()) {
                 choice = scanner.nextInt();
+                scanner.nextLine();                      // nuốt dòng trống sau số
                 switch (choice) {
-                    case 1:
-                        atmController.handleCheckBalance(currentAccount);
-                        break;
-                    case 2:
-                        atmController.handleDeposit(currentAccount, scanner);
-                        break;
-                    case 3:
-                        atmController.handleWithdraw(currentAccount, scanner);
-                        break;
-                    case 4:
-                        System.out.println("Thank you for using ABC Banking!");
-                        break;
-                    default:
-                        System.out.println("Invalid choice! Please try again.");
+                    case 1 -> controller.handleCheckBalance(scanner);
+                    case 2 -> controller.handleDeposit(scanner);
+                    case 3 -> controller.handleWithdraw(scanner);
+                    case 4 -> controller.handleTransfer(scanner);
+                    case 5 -> controller.handleListAccounts();
+                    case 6 -> System.out.println("Thank you for using ABC Banking!");
+                    default -> System.out.println("Invalid choice! Please try again.");
                 }
             } else {
                 System.out.println("Please enter a valid number!");
-                scanner.next(); // Clear invalid input
+                scanner.next();
             }
         }
         scanner.close();

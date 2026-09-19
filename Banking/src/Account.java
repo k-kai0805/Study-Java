@@ -1,6 +1,4 @@
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -11,7 +9,9 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Account {
-    private String bankName;
+    @Setter(AccessLevel.NONE)
+    private String accountNumber;
+    private String ownerName;
     private BigDecimal balance;
     private List<Transaction> transactions = new ArrayList<>();
 
