@@ -1,9 +1,10 @@
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
-        Accounts currentAccount = new Accounts(1,"Quoc Khanh", BigDecimal.valueOf(1000), 0);
+        Account currentAccount = new Account("Quoc Khanh", new BigDecimal("1000"), new ArrayList<>());
         BankService bankService = new BankService();
         BankingController atmController = new BankingController(bankService);
 

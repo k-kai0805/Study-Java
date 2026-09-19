@@ -2,20 +2,21 @@ import lombok.AllArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.Scanner;
+import exception.BusinessException;
 
 @AllArgsConstructor
 public class BankingController {
     private final BankService bankService;
-    public void handleDeposit(Accounts accounts, Scanner scanner) {
+    public void handleDeposit(Account account, Scanner scanner) {
         System.out.println("\n--- DEPOSIT FUNCTION ---");
         System.out.print("Please enter amount to deposit: ");
 
         try {
             BigDecimal amount = scanner.nextBigDecimal();
-            bankService.deposit(accounts, amount);
-            System.out.println("Deposit successful! New balance: $" + accounts.getAmount());
-            System.out.println("Total transactions made: " + accounts.getTransactionCount());
-        } catch (IllegalArgumentException e) {
+            bankService.deposit(account, amount);
+            System.out.println("Deposit successful! New balance: $" + account.getBalance());
+            System.out.println("Transaction time: " + account.getTransactions());
+        } catch (BusinessException e) {
             System.out.println("Error: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("Invalid input format!");
@@ -23,16 +24,16 @@ public class BankingController {
         }
     }
 
-    public void handleWithdraw(Accounts accounts, Scanner scanner) {
+    public void handleWithdraw(Account account, Scanner scanner) {
         System.out.println("\n--- WITHDRAW FUNCTION ---");
         System.out.print("Please enter amount to withdraw: ");
 
         try {
             BigDecimal amount = scanner.nextBigDecimal();
-            bankService.withdraw(accounts, amount);
-            System.out.println("Withdraw successful! New balance: $" + accounts.getAmount());
-            System.out.println("Total transactions made: " + accounts.getTransactionCount());
-        } catch (IllegalArgumentException e) {
+            bankService.withdraw(account, amount);
+            System.out.println("Withdraw successful! New balance: $" + account.getBalance());
+            System.out.println("Transaction time: " + account.getTransactions());
+        } catch (BusinessException e) {
             System.out.println("Error: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("Invalid input format!");
@@ -40,10 +41,10 @@ public class BankingController {
         }
     }
 
-    public void handleCheckBalance(Accounts accounts) {
+    public void handleCheckBalance(Account account) {
         System.out.println("\n--- CHECK BALANCE ---");
-        BigDecimal balance = bankService.checkAccount(accounts);
-        System.out.println("Current balance for " + accounts.getBankName() + ": $" + balance);
-        System.out.println("Total transactions made: " + accounts.getTransactionCount());
+        BigDecimal balance = bankService.checkAccount(account);
+        System.out.println("Current balance for " + account.getBankName() + ": $" + balance);
+        System.out.println("Transaction time: " + account.getTransactions());
     }
 }

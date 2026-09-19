@@ -1,40 +1,42 @@
 import java.math.BigDecimal;
+import exception.*;
 
 public abstract class AbstractBankService implements IBankingService{
     @Override
-    public void deposit(Accounts accounts, BigDecimal amount){
-        if (accounts == null){
-            throw new IllegalArgumentException("Account is invalid");
+    public void deposit(Account account, BigDecimal amount){
+        if (account == null){
+            throw new BusinessException("Account is invalid");
         }
-        if (amount.compareTo(BigDecimal.ZERO) < 0){
-            throw new IllegalArgumentException("Deposit cannot negative");
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0){
+            throw new InvalidAmountException("Deposit amount must be greater than zero");
         }
 
-        doDeposit(accounts, amount);
-        accounts.incrementTransactionCount();
+        doDeposit(account, amount);
         System.out.println("[Log] Transaction completed");
     }
     @Override
-    public void withdraw(Accounts accounts, BigDecimal amount){
-        if (accounts == null){
-            throw new IllegalArgumentException("Account is invalid");
+    public void withdraw(Account account, BigDecimal amount){
+        if (account == null){
+            throw new BusinessException("Account is invalid");
         }
-        if (amount.compareTo(BigDecimal.ZERO) < 0){
-            throw new IllegalArgumentException("Withdraw cannot negative");
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0){
+            throw new InvalidAmountException("Withdraw amount must be greater than zero");
+        }
+        if (amount.compareTo(account.getBalance()) > 0){
+            throw new InsufficientBalanceException("INSUFFICIENT_BALANCE");
         }
 
-        doWithdraw(accounts, amount);
-        accounts.incrementTransactionCount();
+        doWithdraw(account, amount);
         System.out.println("[Log] Transaction completed");
     }
     @Override
-    public BigDecimal checkAccount(Accounts accounts){
-        if (accounts == null){
-            throw new IllegalArgumentException("Account is invalid");
+    public BigDecimal checkAccount(Account account){
+        if (account == null){
+            throw new BusinessException("Account is invalid");
         }
-        return accounts.getAmount();
+        return account.getBalance();
     }
 
-    protected abstract void doDeposit(Accounts accounts, BigDecimal amount);
-    protected abstract void doWithdraw(Accounts accounts, BigDecimal amount);
+    protected abstract void doDeposit(Account account, BigDecimal amount);
+    protected abstract void doWithdraw(Account account, BigDecimal amount);
 }
