@@ -7,44 +7,86 @@ import exception.BusinessException;
 @AllArgsConstructor
 public class BankingController {
     private final BankService bankService;
-    public void handleDeposit(Account account, Scanner scanner) {
-        System.out.println("\n--- DEPOSIT FUNCTION ---");
-        System.out.print("Please enter amount to deposit: ");
-
-        try {
-            BigDecimal amount = scanner.nextBigDecimal();
-            bankService.deposit(account, amount);
-            System.out.println("Deposit successful! New balance: $" + account.getBalance());
-            System.out.println("Transaction time: " + account.getTransactions());
-        } catch (BusinessException e) {
-            System.out.println("Error: " + e.getMessage());
-        } catch (Exception e) {
-            System.out.println("Invalid input format!");
-            scanner.nextLine(); // Clear buffer
+    private final Bank bank;
+    public void handleListAccounts() {
+        System.out.println("\n--- LIST ALL ACCOUNTS ---");
+        for (Account account : bank.getAllAccounts()) {
+            System.out.println(account.getAccountNumber() + " | " + account.getOwnerName()
+                    + " | " + account.getBalance());
         }
     }
 
-    public void handleWithdraw(Account account, Scanner scanner) {
-        System.out.println("\n--- WITHDRAW FUNCTION ---");
-        System.out.print("Please enter amount to withdraw: ");
-
-        try {
-            BigDecimal amount = scanner.nextBigDecimal();
-            bankService.withdraw(account, amount);
-            System.out.println("Withdraw successful! New balance: $" + account.getBalance());
-            System.out.println("Transaction time: " + account.getTransactions());
-        } catch (BusinessException e) {
-            System.out.println("Error: " + e.getMessage());
-        } catch (Exception e) {
-            System.out.println("Invalid input format!");
-            scanner.nextLine();
-        }
-    }
-
-    public void handleCheckBalance(Account account) {
+    public void handleCheckBalance(Scanner scanner) {
         System.out.println("\n--- CHECK BALANCE ---");
-        BigDecimal balance = bankService.checkAccount(account);
-        System.out.println("Current balance for " + account.getBankName() + ": $" + balance);
-        System.out.println("Transaction time: " + account.getTransactions());
+        System.out.print("Enter account number: ");
+        try {
+            String accountNumber = scanner.nextLine();
+            Account account = bank.findAccount(accountNumber);
+            System.out.println("Owner: " + account.getOwnerName());
+            System.out.println("Balance: $" + account.getBalance());
+            System.out.println("Recent transactions: " + account.getTransactions());
+        } catch (BusinessException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    public void handleDeposit(Scanner scanner) {
+        System.out.println("\n--- DEPOSIT FUNCTION ---");
+        System.out.print("Enter account number: ");
+        String accountNumber = scanner.nextLine();
+        try {
+            Account account = bank.findAccount(accountNumber);
+            System.out.print("Enter amount to deposit: ");
+            BigDecimal amount = new BigDecimal(scanner.nextLine());
+            bankService.deposit(accountNumber, amount);
+            System.out.println("Deposit successful! New balance: $" + account.getBalance());
+        } catch (BusinessException e) {
+            System.out.println("Error: " + e.getMessage());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid amount format!");
+        }
+    }
+
+    public void handleWithdraw(Scanner scanner) {
+        System.out.println("\n--- WITHDRAW FUNCTION ---");
+        System.out.print("Enter account number: ");
+        String accountNumber = scanner.nextLine();
+
+        try {
+            Account account = bank.findAccount(accountNumber);
+            System.out.print("Enter amount to withdraw: ");
+            BigDecimal amount = new BigDecimal(scanner.nextLine());
+            bankService.withdraw(accountNumber, amount);
+            System.out.println("Withdraw successful! New balance: $" + account.getBalance());
+        } catch (BusinessException e) {
+            System.out.println("Error: " + e.getMessage());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid amount format!");
+        }
+    }
+
+    public void handleTransfer(Scanner scanner) {
+        System.out.println("\n--- TRANSFER FUNCTION ---");
+        try {
+            System.out.print("Enter FROM account number: ");
+            String fromNumber = scanner.nextLine();
+            printBalance("From", bank.findAccount(fromNumber));
+            System.out.print("Enter TO account number: ");
+            String toNumber = scanner.nextLine();
+            printBalance("To", bank.findAccount(toNumber));
+            System.out.print("Enter amount: ");
+            BigDecimal amount = new BigDecimal(scanner.nextLine());
+            bankService.transfer(fromNumber, toNumber, amount);
+            System.out.println("Transfer successful!");
+        } catch (BusinessException e) {
+            System.out.println("Error: " + e.getMessage());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid amount format!");
+        }
+    }
+
+    private void printBalance(String label, Account account) {
+        System.out.println(label + " - " + account.getAccountNumber() + " - " + account.getOwnerName()
+                + ": $" + account.getBalance());
     }
 }

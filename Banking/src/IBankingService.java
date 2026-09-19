@@ -1,7 +1,8 @@
 import java.math.BigDecimal;
 
 public interface IBankingService {
-    void deposit(Account account, BigDecimal amount);
-    void withdraw(Account account, BigDecimal amount);
-    BigDecimal checkAccount(Account account);
+    void deposit(String accountNumber, BigDecimal amount);
+    void withdraw(String accountNumber, BigDecimal amount);
+    void transfer(String fromAccountNumber, String toAccountNumber, BigDecimal amount);
+    BigDecimal checkAccount(String accountNumber);
 }
