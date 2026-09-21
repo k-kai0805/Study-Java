@@ -15,7 +15,7 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
         int choice = 0;
 
-        while (choice != 7) {
+        while (choice != 8) {
             System.out.println("\n===========================");
             System.out.println("      ABC BANKING MENU     ");
             System.out.println("===========================");
@@ -25,7 +25,8 @@ public class Main {
             System.out.println("4. Transfer");
             System.out.println("5. List all accounts");
             System.out.println("6. Print Statement");
-            System.out.println("7. Exit");
+            System.out.println("7. Print Statement with Type");
+            System.out.println("8. Exit");
             System.out.print("Please choose a function: ");
 
             if (scanner.hasNextInt()) {
@@ -38,7 +39,8 @@ public class Main {
                     case 4 -> controller.handleTransfer(scanner);
                     case 5 -> controller.handleListAccounts();
                     case 6 -> controller.handlePrintStatement(scanner);
-                    case 7 -> System.out.println("Thank you for using ABC Banking!");
+                    case 7 -> controller.handlePrintStatementWithType(scanner);
+                    case 8 -> System.out.println("Thank you for using ABC Banking!");
                     default -> System.out.println("Invalid choice! Please try again.");
                 }
             } else {

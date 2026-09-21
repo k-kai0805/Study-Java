@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.util.Scanner;
 import exception.BusinessException;
 import model.Account;
+import model.TypeTransaction;
 import repo.Bank;
 import report.TransactionService;
 import service.BankService;
@@ -61,6 +62,20 @@ public class BankingController {
             String accountNumber = scanner.nextLine();
             transactionService.printStatement(accountNumber);
         } catch (BusinessException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    public void handlePrintStatementWithType(Scanner scanner) {
+        System.out.println("\n--- PRINT STATEMENT ---");
+        try {
+            System.out.print("Enter account number: ");
+            String accountNumber = scanner.nextLine();
+            System.out.print("Enter type of transaction (DEPOSIT / WITHDRAW / TRANSFER_OUT / TRANSFER_IN): ");
+            String typeInput = scanner.nextLine();
+            TypeTransaction type = TypeTransaction.valueOf(typeInput.toUpperCase());
+            transactionService.printStatementWithType(accountNumber, type);
+        } catch (BusinessException | IllegalArgumentException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }

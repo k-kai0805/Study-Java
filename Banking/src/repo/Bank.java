@@ -1,6 +1,8 @@
 package repo;
 
 import model.Account;
+import model.Transaction;
+import model.TypeTransaction;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -18,6 +20,18 @@ public class Bank {
             throw new exception.AccountNotFoundException("ACCOUNT_NOT_FOUND: " + accountNumber);
         }
         return account;
+    }
+
+    public List<Transaction> findByAccountAndType(
+            String accountNumber,
+            TypeTransaction type) {
+
+        Account account = findAccount(accountNumber);
+
+        return account.getTransactions()
+                .stream()
+                .filter(t -> t.type() == type)
+                .toList();
     }
 
     public List<Account> getAllAccounts() {
