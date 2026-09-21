@@ -1,13 +1,20 @@
+package controller;
+
 import lombok.AllArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.Scanner;
 import exception.BusinessException;
+import model.Account;
+import repo.Bank;
+import report.TransactionService;
+import service.BankService;
 
 @AllArgsConstructor
 public class BankingController {
     private final BankService bankService;
     private final Bank bank;
+    private final TransactionService transactionService;
     public void handleListAccounts() {
         System.out.println("\n--- LIST ALL ACCOUNTS ---");
         for (Account account : bank.getAllAccounts()) {
@@ -44,6 +51,17 @@ public class BankingController {
             System.out.println("Error: " + e.getMessage());
         } catch (NumberFormatException e) {
             System.out.println("Invalid amount format!");
+        }
+    }
+
+    public void handlePrintStatement(Scanner scanner) {
+        System.out.println("\n--- PRINT STATEMENT ---");
+        System.out.print("Enter account number: ");
+        try {
+            String accountNumber = scanner.nextLine();
+            transactionService.printStatement(accountNumber);
+        } catch (BusinessException e) {
+            System.out.println("Error: " + e.getMessage());
         }
     }
 
