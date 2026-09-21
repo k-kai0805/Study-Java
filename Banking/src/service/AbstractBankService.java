@@ -1,7 +1,11 @@
+package service;
+
 import java.math.BigDecimal;
 import exception.*;
+import model.Account;
+import repo.Bank;
 
-public abstract class AbstractBankService implements IBankingService{
+public abstract class AbstractBankService implements IBankingService {
 
     private final Bank bank;
 

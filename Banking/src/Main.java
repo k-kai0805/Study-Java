@@ -1,15 +1,21 @@
+import controller.BankingController;
+import repo.Bank;
+import report.TransactionService;
+import service.BankService;
+
 import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
         Bank bank = new Bank();
         BankService bankService = new BankService(bank);
-        BankingController controller = new BankingController(bankService, bank);
+        TransactionService transactionService = new TransactionService(bank);
+        BankingController controller = new BankingController(bankService, bank, transactionService);
 
         Scanner scanner = new Scanner(System.in);
         int choice = 0;
 
-        while (choice != 6) {
+        while (choice != 7) {
             System.out.println("\n===========================");
             System.out.println("      ABC BANKING MENU     ");
             System.out.println("===========================");
@@ -18,7 +24,8 @@ public class Main {
             System.out.println("3. Withdraw");
             System.out.println("4. Transfer");
             System.out.println("5. List all accounts");
-            System.out.println("6. Exit");
+            System.out.println("6. Print Statement");
+            System.out.println("7. Exit");
             System.out.print("Please choose a function: ");
 
             if (scanner.hasNextInt()) {
@@ -30,7 +37,8 @@ public class Main {
                     case 3 -> controller.handleWithdraw(scanner);
                     case 4 -> controller.handleTransfer(scanner);
                     case 5 -> controller.handleListAccounts();
-                    case 6 -> System.out.println("Thank you for using ABC Banking!");
+                    case 6 -> controller.handlePrintStatement(scanner);
+                    case 7 -> System.out.println("Thank you for using ABC Banking!");
                     default -> System.out.println("Invalid choice! Please try again.");
                 }
             } else {
