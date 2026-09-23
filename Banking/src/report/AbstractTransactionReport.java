@@ -1,11 +1,9 @@
 package report;
 
-import model.Account;
 import model.Transaction;
-import model.TypeTransaction;
+import model.TransactionCriteria;
 import repo.Bank;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public abstract class AbstractTransactionReport implements ITransactionReport{
@@ -15,17 +13,10 @@ public abstract class AbstractTransactionReport implements ITransactionReport{
         this.bank = bank;
     }
     @Override
-    public void printStatement(String accountNumber) {
-        Account account = bank.findAccount(accountNumber);
-        printStatement(account);
+    public void printStatement(String accountNumber, TransactionCriteria transactionCriteria) {
+        List<Transaction> listTransaction = bank.findTransactions(accountNumber, transactionCriteria);
+        printStatement(listTransaction, transactionCriteria, accountNumber);
     }
+    protected abstract void printStatement(List<Transaction> list, TransactionCriteria transactionCriteria, String accountNumber);
 
-    @Override
-    public void printStatementWithType(String accountNumber, TypeTransaction type){
-        List<Transaction> transactions = bank.findByAccountAndType(accountNumber, type);
-        printStatementWithType(transactions, accountNumber);
-    }
-
-    protected abstract void printStatement(Account account);
-    protected abstract void printStatementWithType(List<Transaction> transactionList, String accountName);
 }

@@ -3,19 +3,22 @@ package controller;
 import lombok.AllArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.Scanner;
 import exception.BusinessException;
 import model.Account;
+import model.TransactionCriteria;
 import model.TypeTransaction;
 import repo.Bank;
-import report.TransactionService;
+import report.TransactionReportService;
 import service.BankService;
 
 @AllArgsConstructor
 public class BankingController {
     private final BankService bankService;
     private final Bank bank;
-    private final TransactionService transactionService;
+    private final TransactionReportService transactionReportService;
     public void handleListAccounts() {
         System.out.println("\n--- LIST ALL ACCOUNTS ---");
         for (Account account : bank.getAllAccounts()) {
@@ -56,29 +59,82 @@ public class BankingController {
     }
 
     public void handlePrintStatement(Scanner scanner) {
+
         System.out.println("\n--- PRINT STATEMENT ---");
-        System.out.print("Enter account number: ");
+
         try {
+
+            System.out.print("Enter account number: ");
             String accountNumber = scanner.nextLine();
-            transactionService.printStatement(accountNumber);
+
+            System.out.print(
+                    "Transaction type (DEPOSIT/WITHDRAW/TRANSFER_OUT/TRANSFER_IN, blank for all): "
+            );
+            String typeInput = scanner.nextLine();
+
+            TypeTransaction type = parseType(typeInput);
+
+            System.out.print("From date (yyyy-MM-dd, blank for all): ");
+            LocalDate fromDate = parseDate(scanner.nextLine());
+
+            System.out.print("To date (yyyy-MM-dd, blank for all): ");
+            LocalDate toDate = parseDate(scanner.nextLine());
+
+            if (fromDate != null
+                    && toDate != null
+                    && fromDate.isAfter(toDate)) {
+                throw new BusinessException(
+                        "'From date' must be earlier than or equal to 'To date'."
+                );
+            }
+
+            TransactionCriteria criteria =
+                    new TransactionCriteria(
+                            type,
+                            fromDate,
+                            toDate
+                    );
+
+            transactionReportService.printStatement(
+                    accountNumber,
+                    criteria
+            );
+
         } catch (BusinessException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
 
-    public void handlePrintStatementWithType(Scanner scanner) {
-        System.out.println("\n--- PRINT STATEMENT ---");
+    private LocalDate parseDate(String input) {
+
+        if (input.isBlank()) {
+            return null;
+        }
+
         try {
-            System.out.print("Enter account number: ");
-            String accountNumber = scanner.nextLine();
-            System.out.print("Enter type of transaction (DEPOSIT / WITHDRAW / TRANSFER_OUT / TRANSFER_IN): ");
-            String typeInput = scanner.nextLine();
-            TypeTransaction type = TypeTransaction.valueOf(typeInput.toUpperCase());
-            transactionService.printStatementWithType(accountNumber, type);
-        } catch (BusinessException | IllegalArgumentException e) {
-            System.out.println("Error: " + e.getMessage());
+            return LocalDate.parse(input);
+        } catch (DateTimeParseException e) {
+            throw new BusinessException(
+                    "Invalid date format. Use yyyy-MM-dd."
+            );
         }
     }
+
+    private TypeTransaction parseType(String input) {
+
+        if (input.isBlank()) {
+            return null;
+        }
+
+        try {
+            return TypeTransaction.fromString(input);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(
+                    "Invalid transaction type. Valid values: DEPOSIT, WITHDRAW, TRANSFER_OUT, TRANSFER_IN"
+            );
+        }
+    }
+
 
     public void handleWithdraw(Scanner scanner) {
         System.out.println("\n--- WITHDRAW FUNCTION ---");
