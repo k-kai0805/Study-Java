@@ -2,9 +2,10 @@ package repo;
 
 import model.Account;
 import model.Transaction;
-import model.TypeTransaction;
+import model.TransactionCriteria;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.*;
 
 public class Bank {
@@ -22,15 +23,35 @@ public class Bank {
         return account;
     }
 
-    public List<Transaction> findByAccountAndType(
+    public List<Transaction> findTransactions(
             String accountNumber,
-            TypeTransaction type) {
+            TransactionCriteria criteria) {
 
         Account account = findAccount(accountNumber);
 
         return account.getTransactions()
                 .stream()
-                .filter(t -> t.type() == type)
+                .filter(trx -> {
+
+                    LocalDate trxDate =
+                            trx.timestamp().toLocalDate();
+
+                    boolean matchType =
+                            criteria.typeTransaction() == null
+                                    || trx.type() == criteria.typeTransaction();
+
+                    boolean matchFrom =
+                            criteria.fromDate() == null
+                                    || !trxDate.isBefore(criteria.fromDate());
+
+                    boolean matchTo =
+                            criteria.toDate() == null
+                                    || !trxDate.isAfter(criteria.toDate());
+
+                    return matchType
+                            && matchFrom
+                            && matchTo;
+                })
                 .toList();
     }
 

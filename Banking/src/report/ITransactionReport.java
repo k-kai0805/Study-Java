@@ -1,8 +1,7 @@
 package report;
 
-import model.TypeTransaction;
+import model.TransactionCriteria;
 
 public interface ITransactionReport {
-    void printStatement(String accountNumber);
-    void printStatementWithType(String accountNumber, TypeTransaction type);
+    void printStatement(String accountNumber, TransactionCriteria transactionCriteria);
 }
