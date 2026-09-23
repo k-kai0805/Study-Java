@@ -1,5 +1,6 @@
 package controller;
 
+import countTransaction.StatisticsReportService;
 import lombok.AllArgsConstructor;
 
 import java.math.BigDecimal;
@@ -8,6 +9,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Scanner;
 import exception.BusinessException;
 import model.Account;
+import model.ReportRequest;
 import model.TransactionCriteria;
 import model.TypeTransaction;
 import repo.Bank;
@@ -19,6 +21,7 @@ public class BankingController {
     private final BankService bankService;
     private final Bank bank;
     private final TransactionReportService transactionReportService;
+    private final StatisticsReportService statisticsReportService;
     public void handleListAccounts() {
         System.out.println("\n--- LIST ALL ACCOUNTS ---");
         for (Account account : bank.getAllAccounts()) {
@@ -63,46 +66,71 @@ public class BankingController {
         System.out.println("\n--- PRINT STATEMENT ---");
 
         try {
-
-            System.out.print("Enter account number: ");
-            String accountNumber = scanner.nextLine();
-
-            System.out.print(
-                    "Transaction type (DEPOSIT/WITHDRAW/TRANSFER_OUT/TRANSFER_IN, blank for all): "
-            );
-            String typeInput = scanner.nextLine();
-
-            TypeTransaction type = parseType(typeInput);
-
-            System.out.print("From date (yyyy-MM-dd, blank for all): ");
-            LocalDate fromDate = parseDate(scanner.nextLine());
-
-            System.out.print("To date (yyyy-MM-dd, blank for all): ");
-            LocalDate toDate = parseDate(scanner.nextLine());
-
-            if (fromDate != null
-                    && toDate != null
-                    && fromDate.isAfter(toDate)) {
-                throw new BusinessException(
-                        "'From date' must be earlier than or equal to 'To date'."
-                );
-            }
-
-            TransactionCriteria criteria =
-                    new TransactionCriteria(
-                            type,
-                            fromDate,
-                            toDate
-                    );
+            ReportRequest request =
+                    readReportRequest(scanner);
 
             transactionReportService.printStatement(
-                    accountNumber,
-                    criteria
+                    request.accountNumber(),
+                    request.criteria()
             );
 
         } catch (BusinessException e) {
             System.out.println("Error: " + e.getMessage());
         }
+    }
+
+    public void printCountTransaction(Scanner scanner) {
+
+        System.out.println("\n--- PRINT TRANSACTION FUNCTION ---");
+
+        try {
+            ReportRequest request =
+                    readReportRequest(scanner);
+
+            statisticsReportService.countTransaction(
+                    request.accountNumber(),
+                    request.criteria()
+            );
+
+        } catch (BusinessException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    private ReportRequest readReportRequest(Scanner scanner) {
+
+        System.out.print("Enter account number: ");
+        String accountNumber = scanner.nextLine();
+
+        System.out.print(
+                "Transaction type (DEPOSIT/WITHDRAW/TRANSFER_OUT/TRANSFER_IN, blank for all): "
+        );
+        String typeInput = scanner.nextLine();
+
+        TypeTransaction type = parseType(typeInput);
+
+        System.out.print("From date (yyyy-MM-dd, blank for all): ");
+        LocalDate fromDate = parseDate(scanner.nextLine());
+
+        System.out.print("To date (yyyy-MM-dd, blank for all): ");
+        LocalDate toDate = parseDate(scanner.nextLine());
+
+        if (fromDate != null
+                && toDate != null
+                && fromDate.isAfter(toDate)) {
+            throw new BusinessException(
+                    "'From date' must be earlier than or equal to 'To date'."
+            );
+        }
+
+        return new ReportRequest(
+                accountNumber,
+                new TransactionCriteria(
+                        type,
+                        fromDate,
+                        toDate
+                )
+        );
     }
 
     private LocalDate parseDate(String input) {
