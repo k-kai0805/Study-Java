@@ -28,11 +28,8 @@
         <junit.version>5.11.4</junit.version>
     </properties>
 
-    <!-- TODO(Phase 8): khi len Spring Boot, chuyen code sang layout chuan
-         src/main/java va BO XOA <sourceDirectory> o duoi. -->
+    <!-- Layout chuan Maven/Spring Boot: src/main/java + src/test/java -->
     <build>
-        <sourceDirectory>Banking/src</sourceDirectory>
-
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
