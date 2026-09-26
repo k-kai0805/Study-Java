@@ -5,6 +5,8 @@ on:
     branches:
       - main
   pull_request:
+  # Chay tay tu GitHub Actions UI, khong can day code len main.
+  workflow_dispatch:
 
 jobs:
   build:
@@ -18,6 +20,10 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+          # Cache ~/.m2/repository. Khong co dong nay, moi lan chay lai
+          # tai toan bo jar tu dau.
+          cache: maven
 
       - name: Build and Test
-        run: mvn clean test
+        # -B = batch mode: log gon cho CI, khong co dong hoi Yes/No.
+        run: mvn -B clean verify
