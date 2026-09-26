@@ -1,13 +1,21 @@
 package service;
 
 import java.math.BigDecimal;
+import java.util.EnumSet;
+
 import exception.*;
 import model.Account;
+import model.TypeTransaction;
 import repo.Bank;
 
-public abstract class AbstractBankService implements IBankingService {
+public abstract class AbstractBankService implements IBankService {
 
     private final Bank bank;
+    private static final EnumSet<TypeTransaction> OUTFLOW_TYPES =
+            EnumSet.of(
+                    TypeTransaction.WITHDRAW,
+                    TypeTransaction.TRANSFER_OUT
+            );
 
     public AbstractBankService(Bank bank) {
         this.bank = bank;
@@ -48,6 +56,11 @@ public abstract class AbstractBankService implements IBankingService {
             throw new InsufficientBalanceException("INSUFFICIENT_BALANCE: not enough balance to transfer");
         }
         doTransfer(from, to, amount);
+    }
+
+    @Override
+    public boolean isOutflow(TypeTransaction typeTransaction) {
+        return OUTFLOW_TYPES.contains(typeTransaction);
     }
 
     @Override

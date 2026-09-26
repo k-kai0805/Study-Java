@@ -1,5 +1,6 @@
 package controller;
 
+import analyst.SummaryReportService;
 import countTransaction.StatisticsReportService;
 import lombok.AllArgsConstructor;
 
@@ -15,13 +16,15 @@ import model.TypeTransaction;
 import repo.Bank;
 import report.TransactionReportService;
 import service.BankService;
+import service.IBankService;
 
 @AllArgsConstructor
 public class BankingController {
-    private final BankService bankService;
+    private final IBankService IbankService;
     private final Bank bank;
     private final TransactionReportService transactionReportService;
     private final StatisticsReportService statisticsReportService;
+    private final SummaryReportService summaryReportService;
     public void handleListAccounts() {
         System.out.println("\n--- LIST ALL ACCOUNTS ---");
         for (Account account : bank.getAllAccounts()) {
@@ -52,7 +55,7 @@ public class BankingController {
             Account account = bank.findAccount(accountNumber);
             System.out.print("Enter amount to deposit: ");
             BigDecimal amount = new BigDecimal(scanner.nextLine());
-            bankService.deposit(accountNumber, amount);
+            IbankService.deposit(accountNumber, amount);
             System.out.println("Deposit successful! New balance: $" + account.getBalance());
         } catch (BusinessException e) {
             System.out.println("Error: " + e.getMessage());
@@ -79,7 +82,7 @@ public class BankingController {
         }
     }
 
-    public void printCountTransaction(Scanner scanner) {
+    public void handlePrintCountTransaction(Scanner scanner) {
 
         System.out.println("\n--- PRINT TRANSACTION FUNCTION ---");
 
@@ -97,10 +100,25 @@ public class BankingController {
         }
     }
 
-    private ReportRequest readReportRequest(Scanner scanner) {
+    public void handlePrintSummary(Scanner scanner){
+        System.out.println("\n--- PRINT SUMMARY FUNCTION ---");
 
-        System.out.print("Enter account number: ");
-        String accountNumber = scanner.nextLine();
+        try {
+            TransactionCriteria criteria =
+                    readCriteria(scanner);
+            summaryReportService.printSummary(
+                    criteria
+            );
+        } catch (BusinessException e) {
+            System.out.println(
+                    "Error: " + e.getMessage()
+            );
+        }
+
+
+    }
+
+    private TransactionCriteria readCriteria(Scanner scanner) {
 
         System.out.print(
                 "Transaction type (DEPOSIT/WITHDRAW/TRANSFER_OUT/TRANSFER_IN, blank for all): "
@@ -118,18 +136,28 @@ public class BankingController {
         if (fromDate != null
                 && toDate != null
                 && fromDate.isAfter(toDate)) {
+
             throw new BusinessException(
                     "'From date' must be earlier than or equal to 'To date'."
             );
         }
 
+        return new TransactionCriteria(
+                type,
+                fromDate,
+                toDate
+        );
+    }
+
+    private ReportRequest readReportRequest(
+            Scanner scanner) {
+
+        System.out.print("Enter account number: ");
+        String accountNumber = scanner.nextLine();
+
         return new ReportRequest(
                 accountNumber,
-                new TransactionCriteria(
-                        type,
-                        fromDate,
-                        toDate
-                )
+                readCriteria(scanner)
         );
     }
 
@@ -173,7 +201,7 @@ public class BankingController {
             Account account = bank.findAccount(accountNumber);
             System.out.print("Enter amount to withdraw: ");
             BigDecimal amount = new BigDecimal(scanner.nextLine());
-            bankService.withdraw(accountNumber, amount);
+            IbankService.withdraw(accountNumber, amount);
             System.out.println("Withdraw successful! New balance: $" + account.getBalance());
         } catch (BusinessException e) {
             System.out.println("Error: " + e.getMessage());
@@ -193,7 +221,7 @@ public class BankingController {
             printBalance("To", bank.findAccount(toNumber));
             System.out.print("Enter amount: ");
             BigDecimal amount = new BigDecimal(scanner.nextLine());
-            bankService.transfer(fromNumber, toNumber, amount);
+            IbankService.transfer(fromNumber, toNumber, amount);
             System.out.println("Transfer successful!");
         } catch (BusinessException e) {
             System.out.println("Error: " + e.getMessage());

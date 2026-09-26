@@ -3,6 +3,7 @@ package repo;
 import model.Account;
 import model.Transaction;
 import model.TransactionCriteria;
+import model.TypeTransaction;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -31,27 +32,7 @@ public class Bank {
 
         return account.getTransactions()
                 .stream()
-                .filter(trx -> {
-
-                    LocalDate trxDate =
-                            trx.timestamp().toLocalDate();
-
-                    boolean matchType =
-                            criteria.typeTransaction() == null
-                                    || trx.type() == criteria.typeTransaction();
-
-                    boolean matchFrom =
-                            criteria.fromDate() == null
-                                    || !trxDate.isBefore(criteria.fromDate());
-
-                    boolean matchTo =
-                            criteria.toDate() == null
-                                    || !trxDate.isAfter(criteria.toDate());
-
-                    return matchType
-                            && matchFrom
-                            && matchTo;
-                })
+                .filter(trx -> matchesCriteria(trx, criteria))
                 .toList();
     }
 
@@ -69,6 +50,17 @@ public class Bank {
         accounts.put(account.getAccountNumber(), account);
     }
 
+    public List<Transaction> findAllTransactions(
+            TransactionCriteria criteria) {
+
+        return accounts.values()
+                .stream()
+                .flatMap(account ->
+                        account.getTransactions().stream())
+                .filter(trx -> matchesCriteria(trx, criteria))
+                .toList();
+    }
+
     private void seedData() {
         addAccount(new Account("ACC10001", "Nguyen Quoc Khanh", new BigDecimal("1500000.00"), new ArrayList<>()));
         addAccount(new Account("ACC10002", "Tran Van A",    new BigDecimal("800000.00"),  new ArrayList<>()));
@@ -80,4 +72,27 @@ public class Bank {
         addAccount(new Account("ACC10008", "Vu Thi G",      new BigDecimal("4750000.00"), new ArrayList<>()));
     }
 
+    private boolean matchesCriteria(
+            Transaction trx,
+            TransactionCriteria criteria) {
+
+        LocalDate trxDate =
+                trx.timestamp().toLocalDate();
+
+        boolean matchType =
+                criteria.typeTransaction() == null
+                        || trx.type() == criteria.typeTransaction();
+
+        boolean matchFrom =
+                criteria.fromDate() == null
+                        || !trxDate.isBefore(criteria.fromDate());
+
+        boolean matchTo =
+                criteria.toDate() == null
+                        || !trxDate.isAfter(criteria.toDate());
+
+        return matchType
+                && matchFrom
+                && matchTo;
+    }
 }
