@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 public record Transaction(
+        String accountNumber,
         BigDecimal amount,
         TypeTransaction type,
         LocalDateTime timestamp,
