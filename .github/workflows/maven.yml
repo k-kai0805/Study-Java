@@ -25,5 +25,7 @@ jobs:
           cache: maven
 
       - name: Build and Test
+        # ./mvnw dung dung phien ban Maven da pin trong .mvn/wrapper/,
+        # nen CI khac may hien tai cua ban.
         # -B = batch mode: log gon cho CI, khong co dong hoi Yes/No.
-        run: mvn -B clean verify
+        run: ./mvnw -B clean verify
