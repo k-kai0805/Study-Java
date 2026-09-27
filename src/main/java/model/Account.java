@@ -1,21 +1,49 @@
 package model;
 
-import lombok.*;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
+@Getter
+@Setter
 public class Account {
-    @Setter(AccessLevel.NONE)
+    private Long id;
+    private Long customerId;
     private String accountNumber;
-    private String ownerName;
+    private String fullName;
     private BigDecimal balance;
+    private String status;
+    private LocalDateTime openedAt;
     private List<Transaction> transactions = new ArrayList<>();
+
+    public Account() {
+    }
+
+    public Account(Long id, Long customerId, String accountNumber, String fullName, BigDecimal balance, String status, LocalDateTime openedAt, List<Transaction> transactions) {
+        this.id = id;
+        this.customerId = customerId;
+        this.accountNumber = accountNumber;
+        this.fullName = fullName;
+        this.balance = balance;
+        this.status = status;
+        this.openedAt = openedAt;
+        this.transactions = transactions != null ? transactions : new ArrayList<>();
+    }
+
+    public Account(String accountNumber, String fullName, BigDecimal balance) {
+        this(null, null, accountNumber, fullName, balance, "ACTIVE", java.time.LocalDateTime.now(), new ArrayList<>());
+    }
+
+    public Account(String accountNumber, String fullName, BigDecimal balance, List<Transaction> transactions) {
+        this(null, null, accountNumber, fullName, balance, "ACTIVE", java.time.LocalDateTime.now(), transactions);
+    }
 
     public void addTransaction(Transaction transaction) {
         this.transactions.add(transaction);

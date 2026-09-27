@@ -1,10 +1,12 @@
-import analyst.SummaryReportService;
-import countTransaction.StatisticsReportService;
+import analyst.SqlSummaryReportService;
+import config.DatabaseConnection;
 import controller.BankingController;
-import repo.Bank;
-import report.TransactionReportService;
+import repo.SqlAccountDao;
+import repo.SqlBank;
+import repo.SqlTransactionDao;
+import report.SqlTransactionReportService;
 import service.BankService;
-import service.IBankService;
+import countTransaction.SqlStatisticsReportService;
 
 import java.util.Scanner;
 
@@ -54,11 +56,8 @@ public class Main {
     }
 
     private static BankingController getController() {
-        Bank bank = new Bank();
-        IBankService IbankService = new BankService(bank);
-        TransactionReportService transactionReportService = new TransactionReportService(bank);
-        StatisticsReportService statisticsReportService = new StatisticsReportService(bank);
-        SummaryReportService summaryReportService = new SummaryReportService(bank, IbankService);
-        return new BankingController(IbankService, bank, transactionReportService, statisticsReportService, summaryReportService);
+        SqlBank bank = new SqlBank(new SqlAccountDao(), new SqlTransactionDao(), null);
+        BankService bankService = new BankService(bank);
+        return new BankingController(bankService, bank);
     }
 }

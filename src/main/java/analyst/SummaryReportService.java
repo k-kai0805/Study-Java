@@ -1,7 +1,8 @@
 package analyst;
 
 import model.dto.OutflowSummary;
-import repo.Bank;
+import repo.SqlBank;
+import repo.AccountBalanceHistoryDao;
 import service.IBankService;
 import utils.MessageConstants;
 import utils.MoneyUtil;
@@ -11,8 +12,8 @@ import java.util.Comparator;
 import java.util.List;
 
 public class SummaryReportService extends AbstractSummaryReport{
-    public SummaryReportService(Bank bank, IBankService IbankService) {
-        super(bank, IbankService);
+    public SummaryReportService(SqlBank bank, IBankService IbankService, AccountBalanceHistoryDao balanceHistoryDao) {
+        super(bank, IbankService, balanceHistoryDao);
     }
 
     private static final Comparator<OutflowSummary>
@@ -25,12 +26,6 @@ public class SummaryReportService extends AbstractSummaryReport{
                             OutflowSummary::accountNumber
                     );
 
-    /**
-     *
-     * @param outflow
-     * @param totalVolume totalVolume has no identity information. It tells us how much transaction activity occurred overall
-     *
-     */
     @Override
     protected void render(List<OutflowSummary> outflow, BigDecimal totalVolume) {
 

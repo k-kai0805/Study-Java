@@ -1,19 +1,31 @@
 package service;
 
+import config.AppConfig;
+import config.DatabaseConnection;
 import exception.AccountNotFoundException;
 import exception.BusinessException;
 import exception.InsufficientBalanceException;
 import exception.InvalidAmountException;
 import model.Account;
 import model.TypeTransaction;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import repo.Bank;
+import repo.SqlBank;
+import repo.SqlAccountBalanceHistoryDao;
+import repo.SqlAccountDao;
+import repo.SqlTransactionDao;
+import repo.AccountDao;
+import repo.TransactionDao;
+import repo.AccountBalanceHistoryDao;
 import support.MoneyAssert;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.Statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -31,15 +43,50 @@ class BankServiceTest {
     private static final String ACCOUNT_A = "ACC10001";
     private static final String ACCOUNT_B = "ACC10002";
 
-    private Bank bank;
-    private BankService service;
+    private repo.SqlBank bank;
+    private service.BankService service;
+    private repo.AccountDao accountDao;
+    private repo.TransactionDao transactionDao;
+    private repo.AccountBalanceHistoryDao balanceHistoryDao;
+
+    @BeforeAll
+    static void initDatabase() {
+        // Override config for test
+        System.setProperty("config.file", "application-test.properties");
+        config.AppConfig.resetForTesting();
+    }
 
     @BeforeEach
-    void setUp() {
-        // Tao moi moi test: neu dung chung mot instance, test nay lam ban
-        // test sau va phai mat thoi gian debug tam thoi.
-        bank = new Bank();
-        service = new BankService(bank);
+    void setUp() throws Exception {
+        repo.SqlAccountDao accountDao = new repo.SqlAccountDao();
+        repo.SqlTransactionDao transactionDao = new repo.SqlTransactionDao();
+        repo.SqlAccountBalanceHistoryDao balanceHistoryDao = new repo.SqlAccountBalanceHistoryDao();
+
+        // Initialize schema first
+        repo.SqlBank bank = new repo.SqlBank(new repo.SqlAccountDao(), new repo.SqlTransactionDao(), new repo.SqlAccountBalanceHistoryDao());
+
+        // Clean database
+        try (java.sql.Connection conn = config.DatabaseConnection.getConnection();
+             java.sql.Statement stmt = conn.createStatement()) {
+            stmt.execute("DELETE FROM account_balance_history");
+            stmt.execute("DELETE FROM transaction");
+            stmt.execute("DELETE FROM account");
+        }
+
+        bank = new repo.SqlBank(new repo.SqlAccountDao(), new repo.SqlTransactionDao(), new repo.SqlAccountBalanceHistoryDao());
+        bank.seedDataIfEmpty();
+
+        service = new service.BankService(new repo.SqlBank(new repo.SqlAccountDao(), new repo.SqlTransactionDao(), new repo.SqlAccountBalanceHistoryDao()));
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        try (java.sql.Connection conn = config.DatabaseConnection.getConnection();
+             java.sql.Statement stmt = conn.createStatement()) {
+            stmt.execute("DELETE FROM account_balance_history");
+            stmt.execute("DELETE FROM transaction");
+            stmt.execute("DELETE FROM account");
+        }
     }
 
     // ------------------------------------------------------------------
@@ -55,22 +102,22 @@ class BankServiceTest {
 
         @Test
         void withdraw_isOutflow() {
-            assertTrue(service.isOutflow(TypeTransaction.WITHDRAW));
+            assertTrue(service.isOutflow(model.TypeTransaction.WITHDRAW));
         }
 
         @Test
         void transferOut_isOutflow() {
-            assertTrue(service.isOutflow(TypeTransaction.TRANSFER_OUT));
+            assertTrue(service.isOutflow(model.TypeTransaction.TRANSFER_OUT));
         }
 
         @Test
         void deposit_isNotOutflow() {
-            assertEquals(false, service.isOutflow(TypeTransaction.DEPOSIT));
+            assertEquals(false, service.isOutflow(model.TypeTransaction.DEPOSIT));
         }
 
         @Test
         void transferIn_isNotOutflow() {
-            assertEquals(false, service.isOutflow(TypeTransaction.TRANSFER_IN));
+            assertEquals(false, service.isOutflow(model.TypeTransaction.TRANSFER_IN));
         }
     }
 
@@ -85,7 +132,7 @@ class BankServiceTest {
         void deposit_positiveAmount_increasesBalance() {
             service.deposit(ACCOUNT_A, new BigDecimal("500000"));
 
-            MoneyAssert.assertMoney("2000000.00", bank.findAccount(ACCOUNT_A).getBalance());
+            MoneyAssert.assertMoney("2000000.00", bank.findAccountOrThrow(ACCOUNT_A).getBalance());
         }
 
         @Test
@@ -126,7 +173,7 @@ class BankServiceTest {
             // Bien: rut dung bang so du van hop le, va phai ve dung 0.00
             service.withdraw(ACCOUNT_A, new BigDecimal("1500000.00"));
 
-            MoneyAssert.assertMoney("0.00", bank.findAccount(ACCOUNT_A).getBalance());
+            MoneyAssert.assertMoney("0.00", bank.findAccountOrThrow(ACCOUNT_A).getBalance());
         }
 
         @Test
@@ -172,8 +219,8 @@ class BankServiceTest {
         void transfer_movesMoneyOnBothSides() {
             service.transfer(ACCOUNT_A, ACCOUNT_B, new BigDecimal("300000"));
 
-            MoneyAssert.assertMoney("1200000.00", bank.findAccount(ACCOUNT_A).getBalance());
-            MoneyAssert.assertMoney("1100000.00", bank.findAccount(ACCOUNT_B).getBalance());
+            MoneyAssert.assertMoney("1200000.00", bank.findAccountOrThrow(ACCOUNT_A).getBalance());
+            MoneyAssert.assertMoney("1100000.00", bank.findAccountOrThrow(ACCOUNT_B).getBalance());
         }
 
         @Test
@@ -182,8 +229,8 @@ class BankServiceTest {
             // Day la ly do "tong khoi luong" dem 2 lan mot lenh chuyen.
             service.transfer(ACCOUNT_A, ACCOUNT_B, new BigDecimal("300000"));
 
-            assertEquals(1, bank.findAccount(ACCOUNT_A).getTransactions().size());
-            assertEquals(1, bank.findAccount(ACCOUNT_B).getTransactions().size());
+            assertEquals(1, bank.findAccountOrThrow(ACCOUNT_A).getTransactions().size());
+            assertEquals(1, bank.findAccountOrThrow(ACCOUNT_B).getTransactions().size());
         }
     }
 
@@ -201,7 +248,7 @@ class BankServiceTest {
             service.deposit(ACCOUNT_A, new BigDecimal("0.1"));
             service.deposit(ACCOUNT_A, new BigDecimal("0.2"));
 
-            MoneyAssert.assertMoney("1500000.30", bank.findAccount(ACCOUNT_A).getBalance());
+            MoneyAssert.assertMoney("1500000.30", bank.findAccountOrThrow(ACCOUNT_A).getBalance());
         }
 
         @Test
@@ -212,7 +259,7 @@ class BankServiceTest {
                 service.deposit(ACCOUNT_A, new BigDecimal("0.01"));
             }
 
-            MoneyAssert.assertMoney("1500001.00", bank.findAccount(ACCOUNT_A).getBalance());
+            MoneyAssert.assertMoney("1500001.00", bank.findAccountOrThrow(ACCOUNT_A).getBalance());
         }
     }
 
@@ -224,7 +271,7 @@ class BankServiceTest {
     void transactionList_isUnmodifiable() {
         service.deposit(ACCOUNT_A, new BigDecimal("1000"));
 
-        Account account = bank.findAccount(ACCOUNT_A);
+        Account account = bank.findAccountOrThrow(ACCOUNT_A);
 
         assertThrows(UnsupportedOperationException.class,
                 () -> account.getTransactions().clear());

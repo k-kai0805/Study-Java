@@ -1,10 +1,14 @@
 package repo;
 
+import config.AppConfig;
+import config.DatabaseConnection;
 import exception.AccountNotFoundException;
 import model.Account;
 import model.Transaction;
 import model.TransactionCriteria;
 import model.TypeTransaction;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -12,17 +16,26 @@ import org.junit.jupiter.api.Test;
 import support.MoneyAssert;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Test cho DAO.
+ * Test cho SqlBank DAO.
  *
  * <p>Diem quan trong: khong the them giao dich vao tai khoan co that duoc
  * (Account.addTransaction la public) nen tao du lieu o NGAY CO DINH trong
@@ -38,18 +51,66 @@ class BankTest {
     private static final String ACCOUNT_A = "ACC90001";
     private static final String ACCOUNT_B = "ACC90002";
 
-    private Bank bank;
+    private repo.SqlBank bank;
+    private repo.AccountDao accountDao;
+    private repo.TransactionDao transactionDao;
+    private repo.AccountBalanceHistoryDao balanceHistoryDao;
+
+    @BeforeAll
+    static void initDatabase() {
+        System.setProperty("config.file", "application-test.properties");
+        config.AppConfig.resetForTesting();
+        config.DatabaseConnection.initializeTestSchema();
+    }
 
     @BeforeEach
-    void setUp() {
-        bank = new Bank();
-        bank.addAccount(accountWith(ACCOUNT_A, "1000000.00",
-                trx(ACCOUNT_A, "500000.00", TypeTransaction.DEPOSIT, 1, 10, "1000000.00"),
-                trx(ACCOUNT_A, "200000.00", TypeTransaction.WITHDRAW, 1, 20, "800000.00"),
-                trx(ACCOUNT_A, "100000.00", TypeTransaction.TRANSFER_IN, 2, 5, "900000.00")));
-        bank.addAccount(accountWith(ACCOUNT_B, "800000.00",
-                trx(ACCOUNT_B, "300000.00", TypeTransaction.DEPOSIT, 1, 15, "800000.00"),
-                trx(ACCOUNT_B, "50000.00", TypeTransaction.DEPOSIT, 2, 10, "850000.00")));
+    void setUp() throws Exception {
+        repo.SqlAccountDao accountDao = new repo.SqlAccountDao();
+        repo.SqlTransactionDao transactionDao = new repo.SqlTransactionDao();
+        repo.SqlAccountBalanceHistoryDao balanceHistoryDao = new repo.SqlAccountBalanceHistoryDao();
+
+        // Create bank first to initialize schema
+        repo.SqlBank bank = new repo.SqlBank(accountDao, transactionDao, balanceHistoryDao);
+
+        // Clean database
+        try (java.sql.Connection conn = config.DatabaseConnection.getConnection();
+             java.sql.Statement stmt = conn.createStatement()) {
+            stmt.execute("DELETE FROM account_balance_history");
+            stmt.execute("DELETE FROM transaction");
+            stmt.execute("DELETE FROM account");
+            stmt.execute("DELETE FROM customer");
+        }
+
+        // Create test accounts with transactions
+        model.Account accountA = accountWith(ACCOUNT_A, "1000000.00",
+                trx("TXN-001", ACCOUNT_A, "500000.00", model.TypeTransaction.DEPOSIT, 1, 10, "1000000.00"),
+                trx(ACCOUNT_A, "200000.00", model.TypeTransaction.WITHDRAW, 1, 20, "800000.00"),
+                trx(ACCOUNT_A, "100000.00", model.TypeTransaction.TRANSFER_IN, 2, 5, "900000.00"));
+        bank.addAccount(accountA);
+        // Save transactions for accountA
+        for (model.Transaction tx : bank.findAccount(ACCOUNT_A).orElseThrow().getTransactions()) {
+            bank.saveTransaction(tx);
+        }
+
+        Account accountB = accountWith(ACCOUNT_B, "800000.00",
+                trx(ACCOUNT_B, "300000.00", model.TypeTransaction.DEPOSIT, 1, 15, "800000.00"),
+                trx(ACCOUNT_B, "50000.00", model.TypeTransaction.DEPOSIT, 2, 10, "850000.00"));
+        bank.addAccount(accountB);
+        // Save transactions for accountB
+        for (model.Transaction tx : bank.findAccount(ACCOUNT_B).orElseThrow().getTransactions()) {
+            bank.saveTransaction(tx);
+        }
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        try (java.sql.Connection conn = config.DatabaseConnection.getConnection();
+             java.sql.Statement stmt = conn.createStatement()) {
+            stmt.execute("DELETE FROM account_balance_history");
+            stmt.execute("DELETE FROM transaction");
+            stmt.execute("DELETE FROM account");
+            stmt.execute("DELETE FROM customer");
+        }
     }
 
     // ------------------------------------------------------------------
@@ -71,17 +132,16 @@ class BankTest {
         @DisplayName("loc theo loai giao dich")
         void byType_filtersCorrectly() {
             List<Transaction> result = bank.findAllTransactions(
-                    criteria(TypeTransaction.DEPOSIT, null, null));
+                    criteria(model.TypeTransaction.DEPOSIT, null, null));
 
             assertEquals(3, result.size());
-            assertTrue(result.stream().allMatch(t -> t.type() == TypeTransaction.DEPOSIT));
+            assertTrue(result.stream().allMatch(t -> t.type() == model.TypeTransaction.DEPOSIT));
         }
 
         @Test
         @DisplayName("loc theo from, tra ve ca muc do bang from")
         void byFromDate_isInclusive() {
-            // Giao dich tren hoac sau 20/01:
-            // ACC90001 20/01, 05/02 · ACC90002 10/02  -> 3
+            // Bien: 2026-01-20 phai co trong ket qua
             List<Transaction> result = bank.findAllTransactions(
                     criteria(null, LocalDate.of(2026, 1, 20), null));
 
@@ -109,8 +169,7 @@ class BankTest {
         @Test
         @DisplayName("from > to thi khong co giao dich nao thoa man")
         void fromAfterTo_returnsEmpty() {
-            // Bank KHONG chan truoc - no tra ve rong. Chan truoc
-            // (from > to) thuoc ve tang Controller.
+            // Bien: 2026-02-01 phai co trong ket qua
             List<Transaction> result = bank.findAllTransactions(
                     criteria(null, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 1, 1)));
 
@@ -158,7 +217,7 @@ class BankTest {
         void bothMethods_shareTheSameFilter() {
             // Kiem tra tinh nhat quan: cung 1 criteria, ket qua phai khop
             // voi phan con lai cua tong so giao dich.
-            TransactionCriteria c = criteria(TypeTransaction.DEPOSIT, null, null);
+            TransactionCriteria c = criteria(model.TypeTransaction.DEPOSIT, null, null);
 
             long fromAll = bank.findAllTransactions(c).size();
             long fromA = bank.findTransactions(ACCOUNT_A, c).size();
@@ -177,12 +236,12 @@ class BankTest {
 
         @Test
         void existingAccount_returnsAccount() {
-            assertEquals(ACCOUNT_A, bank.findAccount(ACCOUNT_A).getAccountNumber());
+            assertEquals(ACCOUNT_A, bank.findAccount(ACCOUNT_A).orElseThrow().getAccountNumber());
         }
 
         @Test
         void unknownAccount_throwsAccountNotFound() {
-            assertThrows(AccountNotFoundException.class, () -> bank.findAccount("KHONG-CO"));
+            assertThrows(AccountNotFoundException.class, () -> bank.findAccount("KHONG-CO").orElseThrow());
         }
 
         @Test
@@ -218,13 +277,13 @@ class BankTest {
     // ------------------------------------------------------------------
     // Helper
     // ------------------------------------------------------------------
-    private static TransactionCriteria criteria(TypeTransaction type, LocalDate from, LocalDate to) {
+    private static TransactionCriteria criteria(model.TypeTransaction type, java.time.LocalDate from, java.time.LocalDate to) {
         return new TransactionCriteria(type, from, to);
     }
 
-    private static Transaction trx(String account, String amount, TypeTransaction type,
+    private static Transaction trx(String reference, String account, String amount, model.TypeTransaction type,
                                    int month, int day, String afterBalance) {
-        return new Transaction(account,
+        return new Transaction(reference, account,
                 new BigDecimal(amount),
                 type,
                 LocalDateTime.of(2026, month, day, 9, 0),

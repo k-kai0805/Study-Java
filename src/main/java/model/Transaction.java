@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 public record Transaction(
+        String referenceNo,
         String accountNumber,
         BigDecimal amount,
         TypeTransaction type,
@@ -22,11 +23,11 @@ public record Transaction(
     @Override
     public String toString() {
         return String.format(
-                "[%s] %s VND · %s · %s VND",
+                "[%s] %s VND · %s · %s",
                 type,
                 MONEY_FORMATTER.format(amount),
                 timestamp.format(DATE_FORMATTER),
-                MONEY_FORMATTER.format(afterBalance)
+                referenceNo
         );
     }
 }

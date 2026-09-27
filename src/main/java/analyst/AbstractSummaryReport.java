@@ -3,8 +3,10 @@ package analyst;
 import model.Account;
 import model.Transaction;
 import model.TransactionCriteria;
+import model.AccountBalanceHistory;
 import model.dto.OutflowSummary;
-import repo.Bank;
+import repo.SqlBank;
+import repo.AccountBalanceHistoryDao;
 import service.IBankService;
 
 import java.math.BigDecimal;
@@ -13,12 +15,14 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class AbstractSummaryReport implements ISummaryReport {
-    private final Bank bank;
+    private final SqlBank bank;
     private final IBankService bankService;
+    private final AccountBalanceHistoryDao balanceHistoryDao;
 
-    protected AbstractSummaryReport(Bank bank, IBankService bankService) {
+    protected AbstractSummaryReport(SqlBank bank, IBankService bankService, AccountBalanceHistoryDao balanceHistoryDao) {
         this.bank = bank;
         this.bankService = bankService;
+        this.balanceHistoryDao = balanceHistoryDao;
     }
 
     @Override
@@ -73,10 +77,15 @@ public abstract class AbstractSummaryReport implements ISummaryReport {
                                             entry.getKey()
                                     );
 
+                            // Get closing balance from balance history
+                            BigDecimal closingBalance = balanceHistoryDao.findLatestByAccountNumber(entry.getKey())
+                                    .map(h -> h.balance())
+                                    .orElse(BigDecimal.ZERO);
+
                             return new OutflowSummary(
                                     entry.getKey(),
                                     entry.getValue(),
-                                    latest.afterBalance()
+                                    closingBalance
                             );
                         })
                         .toList();

@@ -26,3 +26,10 @@ Thumbs.db
 
 # ===== Log =====
 *.log
+
+# ===== Secret / cau hinh moi truong =====
+.env
+.env.*
+*.properties
+*.local
+!src/test/resources/*.properties
